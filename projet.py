@@ -1,10 +1,14 @@
-from sklearn import datasets # pour importer le dataset iris
+import numpy as np
 import pandas as pd # pour la transformation en DataFrame
 import re
 
-# Fonctions intermédiaires pour la conversion de samples en texte
+# Importations datasets
+from sklearn import datasets
 
+# -------------------------------------------
+# TRANSFORMATION DATAFRAME
 
+# Transformation de la valeur en texte
 def text_type_select(value, feature, select=0) :
     """ Retourne un type de texte selon la sélection
     0. <value> <feature>
@@ -23,7 +27,8 @@ def text_type_select(value, feature, select=0) :
     if select == 1 :
         name, unit = feature
         return str(value) + " " + str(unit) + " of " + str(name)
-
+    
+# Transformation d'une ligne en texte
 def df_row_to_text(df:pd.DataFrame, row_num, label_num=-1, subject_name = "subject", has_unit=False) :
     """ Pour une ligne d'un DataFrame, génère un texte expliquant la ligne
 
@@ -69,5 +74,107 @@ def df_row_to_text(df:pd.DataFrame, row_num, label_num=-1, subject_name = "subje
 
     return text
 
-def df_texts_list(df:pd.DataFrame, label_num=-1, subject_name = "subject", has_unit=False) :
-    return [df_row_to_text(df, i, label_num, subject_name, has_unit) for i in range(len(df))]
+# Liste de textes
+def df_texts_list(df:pd.DataFrame, **kwargs) :
+    """_summary_
+
+    Args:
+        df (pd.DataFrame): _description_
+        label_num (int, optional): _description_. Defaults to -1.
+        subject_name (str, optional): _description_. Defaults to "subject".
+        has_unit (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
+    return [df_row_to_text(df, i, **kwargs) for i in range(len(df))]
+
+# DataFrame Texte (Main)
+def df_to_df_text(df:pd.DataFrame, label_num=-1, **kwargs) :
+    text_list = df_texts_list(df, **kwargs)
+    text_array = np.array(text_list).reshape(-1, 1)
+    label_array = np.array(df.iloc[:, label_num]).reshape(-1, 1)
+    text_df = pd.DataFrame(np.hstack((text_array, label_array)), columns=["text", "label"])
+    return text_df
+
+# -------------------------------------------
+# TRAINING
+
+# Training (Main)
+def train_clf(clf, df_train, label_num=-1) :
+    selection = [True for _ in range(len(df_train.columns))]
+    selection[label_num] = False
+    clf.fit(df_train.iloc[:,selection], df_train.iloc[:,label_num]) 
+    print(clf.predict(df_train.iloc[:,:-1]))
+
+# -------------------------------------------
+# TRAITEMENT
+
+# Récupérer la liste de features et le nom de label de la question
+def question_to_list(q) :
+    pattern = r'be (.*) \?'
+    match = re.search(pattern, q)
+    a_label = match.group(1)
+
+    pattern = r'have (.*), what'
+    match = re.search(pattern, q.strip())
+    a_features = match.group(1)
+    a_list_features = a_features.split(',')
+    a_list_features = [feature.strip() for feature in a_list_features]
+
+    return a_list_features, a_label
+
+# Transformer en DataFrame pour faire passer dans le calcul de prédiction
+def question_to_df(q) :
+    a_list_features, _ = question_to_list(q)
+    a_list_features_split = [feature.split('=') for feature in a_list_features]
+    a_features_names = [feature[0] for feature in a_list_features_split]
+    try : 
+        a_features_values = [float(feature[1]) for feature in a_list_features_split]
+    except :
+        a_features_values = [feature[1] for feature in a_list_features_split]
+    return pd.DataFrame(data=np.array([a_features_values]), columns=a_features_names)
+
+# Prédiction de la réponse
+def q_df_to_answer(clf, df) :
+    return clf.predict(df)[0]
+
+# Prédiction de la réponse
+def answer_to_text(q, a) :
+    _, a_label = question_to_list(q)
+    pattern = r'what .* \?'
+    qa = re.sub(pattern, '', q.strip())
+    return qa.strip() + " " + a_label + " is " + str(a)
+
+# Réponse du programme à partir de la question
+def traitement_question(clf, q) :
+    q_df = question_to_df(q)
+    a = q_df_to_answer(clf, q_df)
+    return answer_to_text(q, a)
+
+
+"""
+# ------
+# Tâches
+# ------
+
+- Training (Done)
+- Fonction avec entrée question et sortie réponse (Done)
+
+- Autres problèmes à régler pour la généralisation :
+    - Réglage de types (on considère str ou float) (Done)
+    - Ordre des features
+    - Features manquants
+
+- A partir du DataFrame de texte à entraîner, faire la même chose
+
+# ------
+# Notes
+# ------
+
+- Les fonctions sont 'Main' lorsqu'il ne s'agit pas de fonctions intermédiaires
+- format question : When we have x1=r.x1, x2=r.x2, . . . , xp=r.xp, what should be y ?
+- format réponse : y = r.y
+
+
+"""
