@@ -5,6 +5,10 @@ import re
 # Importations datasets
 from sklearn import datasets
 
+# Pré-modèles !
+from train_premodel import *
+from test_finetuned import *
+
 # -------------------------------------------
 # TRANSFORMATION DATAFRAME
 
@@ -90,7 +94,8 @@ def df_texts_list(df:pd.DataFrame, **kwargs) :
     return [df_row_to_text(df, i, **kwargs) for i in range(len(df))]
 
 # DataFrame Texte (Main)
-def df_to_df_text(df:pd.DataFrame, label_num=-1, **kwargs) :
+def df_to_df_text(df:pd.DataFrame, **kwargs) :
+    label_num = kwargs.get("label_num", -1) # à tester
     text_list = df_texts_list(df, **kwargs)
     text_array = np.array(text_list).reshape(-1, 1)
     label_array = np.array(df.iloc[:, label_num]).reshape(-1, 1)
