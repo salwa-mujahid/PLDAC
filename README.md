@@ -20,6 +20,6 @@ Nous avons deux fichiers : </br>
 
 ---
 
-- Réalisé par Salwa MUJAHID
-- Projet dirigé par Christophe MARSALA
-- DAC 2023-2024 Sorbonne Université
+- <u>Réalisé par Salwa MUJAHID</u>
+- <u>Projet dirigé par Christophe MARSALA</u>
+- <u>DAC 2023-2024 Sorbonne Université</u>
